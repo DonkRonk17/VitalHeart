@@ -1,3 +1,5 @@
+<img width="1376" height="768" alt="image" src="https://github.com/user-attachments/assets/d6964157-5bbd-4889-9a45-ff0fc8a013ec" />
+
 # VitalHeart Phase 1: OllamaGuard
 
 **Ollama Inference Health Daemon - Auto-Healing Monitoring System**
@@ -863,6 +865,9 @@ Build Protocol Compliance:
 ```
 
 ---
+
+<img width="1376" height="768" alt="image" src="https://github.com/user-attachments/assets/ea1186ba-3b74-40a9-af49-45604a7fd8a7" />
+
 
 ## Contributing
 
