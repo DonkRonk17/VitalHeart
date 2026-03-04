@@ -1,0 +1,25 @@
+# VitalHeart Phase 1: OllamaGuard Requirements
+# Python 3.10+ required
+
+# Core dependencies
+requests>=2.31.0          # Ollama REST API calls
+psutil>=5.9.0             # Process management and system metrics
+
+# Future phases (import early for consistency)
+pynvml>=11.5.0            # GPU monitoring (Phase 3: HardwareSoul)
+
+# Standard library (no install needed, listed for reference)
+# - json
+# - time
+# - logging
+# - sys
+# - os
+# - signal
+# - pathlib
+# - datetime
+# - typing
+# - enum
+# - traceback
+
+# Tool dependencies (already installed in AutoProjects/)
+# - AgentHeartbeat (C:\Users\logan\OneDrive\Documents\AutoProjects\AgentHeartbeat\)

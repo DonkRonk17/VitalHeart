@@ -1,0 +1,307 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║                   VitalHeart Phase 1: OllamaGuard                            ║
+║                          QUICK REFERENCE                                     ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════════════════════
+QUICK START
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Install dependencies:
+   pip install -r requirements.txt
+
+2. Set OLLAMA_KEEP_ALIVE (recommended):
+   [System.Environment]::SetEnvironmentVariable("OLLAMA_KEEP_ALIVE", "24h", "User")
+
+3. Run daemon:
+   python ollamaguard.py
+
+4. Stop daemon:
+   Press Ctrl+C
+
+═══════════════════════════════════════════════════════════════════════════════
+CONFIGURATION QUICK EDIT
+═══════════════════════════════════════════════════════════════════════════════
+
+Config File: ollamaguard_config.json
+
+Common Changes:
+
+• Change monitored model:
+  {"ollama": {"model_name": "your-model"}}
+
+• Adjust check frequency:
+  {"ollama": {"check_interval_seconds": 120}}  // Every 2 minutes
+
+• Change inference timeout:
+  {"ollama": {"inference_timeout_seconds": 60}}  // More lenient
+
+• Increase restart limits:
+  {"restart": {"daily_restart_limit": 20}}
+
+• Disable micro-inference tests (not recommended):
+  {"monitoring": {"enable_micro_inference_test": false}}
+
+═══════════════════════════════════════════════════════════════════════════════
+MONITORING COMMANDS
+═══════════════════════════════════════════════════════════════════════════════
+
+View Live Logs:
+  Get-Content .\ollamaguard.log -Wait -Tail 50
+
+Check Recent Health Status:
+  Select-String -Path .\ollamaguard.log -Pattern "HealthCheck\] Status" | Select -Last 10
+
+Find Restart Events:
+  Select-String -Path .\ollamaguard.log -Pattern "Intervention"
+
+View Audit Log:
+  Get-Content .\ollamaguard_audit.jsonl | Select -Last 20
+
+Count Today's Restarts:
+  (Get-Content .\ollamaguard_audit.jsonl | Select-String "ollama_restart_success").Count
+
+═══════════════════════════════════════════════════════════════════════════════
+HEALTH STATUS MEANINGS
+═══════════════════════════════════════════════════════════════════════════════
+
+HEALTHY           ✅  Ollama responsive, model loaded, inference working
+MODEL_UNLOADED    ⏳  Model evicted from VRAM (auto-reload triggered)
+INFERENCE_FROZEN  ❌  Inference timed out (auto-restart triggered)
+SERVER_DOWN       🔴  Cannot connect to Ollama (auto-restart triggered)
+GRACE_PERIOD      🔄  Ollama version changed (5-min grace, no interventions)
+
+═══════════════════════════════════════════════════════════════════════════════
+RESTART STRATEGY SUMMARY
+═══════════════════════════════════════════════════════════════════════════════
+
+Exponential Backoff:
+  Attempt 1: 1 second
+  Attempt 2: 2 seconds
+  Attempt 3: 4 seconds
+  Attempt 4+: ESCALATE (no more auto-restarts)
+
+Limits:
+  • Max 3 restarts in 5-minute window
+  • Max 10 restarts in 24 hours
+  • After limits: monitoring-only mode (manual intervention required)
+
+═══════════════════════════════════════════════════════════════════════════════
+AGENTHEARTBEAT INTEGRATION
+═══════════════════════════════════════════════════════════════════════════════
+
+Query Latest Heartbeat:
+
+  from agentheartbeat import AgentHeartbeatMonitor
+  monitor = AgentHeartbeatMonitor()
+  hb = monitor.get_latest_heartbeat("LUMINA")
+  print(hb['status'], hb['metrics']['ollama_version'])
+
+Key Metrics Stored:
+  • ollama_version: Ollama version string
+  • model_loaded: Boolean (True/False)
+  • inference_latency_ms: Inference test duration
+  • vram_used_mb: VRAM usage in megabytes
+  • restarts_today: Count of restarts in last 24h
+  • uptime_hours: Hours since last Ollama restart
+
+═══════════════════════════════════════════════════════════════════════════════
+TROUBLESHOOTING QUICK FIXES
+═══════════════════════════════════════════════════════════════════════════════
+
+Problem: "Connection refused"
+Fix: Start Ollama or check if running on different port
+
+Problem: "Model not found"
+Fix: ollama pull your-model-name
+
+Problem: "OLLAMA_KEEP_ALIVE not set"
+Fix: Set environment variable (see Quick Start #2)
+
+Problem: Daily restart limit exceeded
+Fix: Check Ollama logs for crash reasons, consider increasing limit
+
+Problem: Too many false restarts
+Fix: Increase inference_timeout_seconds in config
+
+Problem: AgentHeartbeat unavailable
+Fix: OllamaGuard will use fallback file (ollamaguard_heartbeat_fallback.jsonl)
+
+═══════════════════════════════════════════════════════════════════════════════
+FILE LOCATIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+ollamaguard.py                         - Main daemon script
+ollamaguard_config.json                - Configuration file
+ollamaguard.log                        - Application log
+ollamaguard_audit.jsonl                - Audit log (JSON Lines)
+ollamaguard_heartbeat_fallback.jsonl   - Fallback if AgentHeartbeat down
+test_ollamaguard.py                    - Test suite (72 tests)
+
+═══════════════════════════════════════════════════════════════════════════════
+TESTING
+═══════════════════════════════════════════════════════════════════════════════
+
+Run All Tests:
+  python -m pytest test_ollamaguard.py -v
+
+Run Specific Test Class:
+  python -m pytest test_ollamaguard.py::TestConfiguration -v
+
+Run with Coverage:
+  python -m pytest test_ollamaguard.py --cov=ollamaguard --cov-report=html
+
+Expected Result:
+  72 passed in ~12 seconds
+
+═══════════════════════════════════════════════════════════════════════════════
+METRICS OVERVIEW
+═══════════════════════════════════════════════════════════════════════════════
+
+Check Interval:        60 seconds (default)
+Inference Timeout:     30 seconds (default)
+Model Keep-Alive:      24 hours (configurable)
+Max Restarts (window): 3 in 5 minutes
+Max Restarts (daily):  10 in 24 hours
+Detection Time:        60-90 seconds (worst case)
+
+═══════════════════════════════════════════════════════════════════════════════
+CONFIGURATION PRESETS
+═══════════════════════════════════════════════════════════════════════════════
+
+AGGRESSIVE (Fast Response):
+  check_interval_seconds: 30
+  inference_timeout_seconds: 10
+  max_attempts: 5
+  daily_restart_limit: 20
+
+CONSERVATIVE (Low Overhead):
+  check_interval_seconds: 300
+  inference_timeout_seconds: 60
+  max_attempts: 2
+  enable_micro_inference_test: false
+
+MONITORING ONLY (No Auto-Restart):
+  max_attempts: 0
+  daily_restart_limit: 0
+
+═══════════════════════════════════════════════════════════════════════════════
+USEFUL POWERSHELL COMMANDS
+═══════════════════════════════════════════════════════════════════════════════
+
+Check if Ollama Running:
+  Get-Process | Where-Object {$_.Name -like "*ollama*"}
+
+Kill Ollama (if needed):
+  Stop-Process -Name "ollama" -Force
+
+Check Port 11434:
+  Test-NetConnection -ComputerName localhost -Port 11434
+
+View Environment Variables:
+  [Environment]::GetEnvironmentVariable("OLLAMA_KEEP_ALIVE", "User")
+
+═══════════════════════════════════════════════════════════════════════════════
+CUSTOM SCRIPTS
+═══════════════════════════════════════════════════════════════════════════════
+
+Validate Config (before running):
+  python validate_config.py ollamaguard_config.json
+
+Check Ollama Health (programmatic):
+  python check_ollama_health.py
+
+Analyze Trends (last 24h):
+  python analyze_ollama_trends.py
+
+Monitor Live Heartbeats:
+  python monitor_live.py
+
+═══════════════════════════════════════════════════════════════════════════════
+WINDOWS SERVICE SETUP (OPTIONAL)
+═══════════════════════════════════════════════════════════════════════════════
+
+Using NSSM:
+  nssm install OllamaGuard "C:\Python312\python.exe" "C:\...\ollamaguard.py"
+  nssm start OllamaGuard
+
+Using Task Scheduler:
+  1. Create Basic Task: "OllamaGuard"
+  2. Trigger: "When the computer starts"
+  3. Action: "Start a program"
+  4. Program: python.exe
+  5. Arguments: C:\...\ollamaguard.py
+
+═══════════════════════════════════════════════════════════════════════════════
+IMPORTANT PATHS
+═══════════════════════════════════════════════════════════════════════════════
+
+OllamaGuard Install:
+  C:\Users\logan\OneDrive\Documents\AutoProjects\VitalHeart\
+
+AgentHeartbeat:
+  C:\Users\logan\OneDrive\Documents\AutoProjects\AgentHeartbeat\
+
+AgentHeartbeat Database:
+  C:\Users\logan\OneDrive\Documents\AutoProjects\AgentHeartbeat\heartbeat.db
+
+UKE Database:
+  D:\BEACON_HQ\PROJECTS\00_ACTIVE\UKE\uke.db
+
+Ollama Logs (Windows):
+  $env:LOCALAPPDATA\Ollama\logs\server.log
+
+═══════════════════════════════════════════════════════════════════════════════
+SUPPORT & DOCUMENTATION
+═══════════════════════════════════════════════════════════════════════════════
+
+README.md                 - Full documentation (600+ lines)
+EXAMPLES.md               - 18 usage examples with output
+ARCHITECTURE_DESIGN.md    - System architecture and components
+BUILD_AUDIT.md            - Complete tool audit (31 tools)
+BUG_HUNT_REPORT.md        - Testing methodology and fixes
+BUILD_COVERAGE_PLAN.md    - Build planning document
+
+═══════════════════════════════════════════════════════════════════════════════
+QUALITY GATES (ALL PASSED)
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ TEST:      72/72 tests passing (100%)
+✅ DOCS:      README 613 lines (exceeds 400 min)
+✅ EXAMPLES:  18 examples (exceeds 10 min)
+✅ ERRORS:    10 edge case tests (exceeds 5 min)
+✅ QUALITY:   PEP 8 compliant, type hints, docstrings
+✅ BRANDING:  Team Brain style throughout
+
+═══════════════════════════════════════════════════════════════════════════════
+VERSION & BUILD INFO
+═══════════════════════════════════════════════════════════════════════════════
+
+Version:         1.0.0
+Built By:        ATLAS (C_Atlas) - Cursor IDE Agent
+Build Protocol:  BUILD_PROTOCOL_V1.md (100% Compliance)
+Test Protocol:   Bug Hunt Protocol (100% Compliance)
+Build Date:      February 13, 2026
+Tools Used:      31 Team Brain tools
+Code Lines:      843 (production) + 1089 (tests)
+Test Coverage:   72 tests, 100% passing
+
+═══════════════════════════════════════════════════════════════════════════════
+PROJECT CONTEXT
+═══════════════════════════════════════════════════════════════════════════════
+
+Project:     VitalHeart - Ollama Inference Health Monitoring System
+Phase:       Phase 1 - OllamaGuard Daemon
+Future:      Phase 2 (InferencePulse), Phase 3 (HardwareSoul), Phase 4 (Tokens)
+Purpose:     Monitor Lumina's Ollama backend, auto-heal failures
+Status:      ✅ COMPLETE - Ready for deployment
+
+═══════════════════════════════════════════════════════════════════════════════
+
+⚛️ "Quality is not an act, it is a habit!" ⚛️
+
+For the Maximum Benefit of Life. One World. One Family. One Love. 🔆⚒️🔗
+
+═══════════════════════════════════════════════════════════════════════════════

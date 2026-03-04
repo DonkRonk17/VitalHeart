@@ -1,0 +1,8 @@
+# requirements.txt - VitalHeart Phase 3: HardwareSoul
+
+# Phase 1 & 2 Dependencies (retained)
+requests>=2.31.0
+psutil>=5.9.0
+
+# Phase 3 NEW Dependencies
+nvidia-ml-py>=12.535.108  # pynvml for GPU monitoring

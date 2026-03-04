@@ -1,0 +1,36 @@
+{
+  "ollama": {
+    "api_url": "http://localhost:11434",
+    "model_name": "laia",
+    "keep_alive_duration": "24h",
+    "inference_timeout_seconds": 30,
+    "check_interval_seconds": 30
+  },
+  "restart": {
+    "max_attempts": 3,
+    "backoff_initial_seconds": 1,
+    "backoff_max_seconds": 60,
+    "restart_window_minutes": 5,
+    "daily_restart_limit": 10
+  },
+  "monitoring": {
+    "enable_micro_inference_test": true,
+    "enable_vram_tracking": true,
+    "enable_version_tracking": true,
+    "skip_test_if_active_inference": true
+  },
+  "integration": {
+    "agentheartbeat_enabled": true,
+    "heartbeat_db_path": "C:\\Users\\logan\\OneDrive\\Documents\\AutoProjects\\AgentHeartbeat\\heartbeat.db",
+    "uke_enabled": true,
+    "uke_db_path": "D:\\BEACON_HQ\\PROJECTS\\00_ACTIVE\\UKE\\uke.db",
+    "liveaudit_enabled": true,
+    "audit_log_path": "./ollamaguard_audit.jsonl"
+  },
+  "logging": {
+    "log_level": "INFO",
+    "log_file": "./ollamaguard.log",
+    "log_rotation_mb": 10,
+    "log_retention_days": 30
+  }
+}
